@@ -1,0 +1,109 @@
+name: PSF_CVAE
+model_type: CVAE_PSF_model  # Must match class name exactly
+is_train: true
+report_to: comet_ml
+push_to_hub: false
+num_gpu: 1  # Start with 1 GPU for initial testing
+seed: 42
+mixed_precision: !!str no  # Disable mixed precision for stability
+allow_tf32: false
+tracker_project_name: PSF_CVAE
+experiment_key: CVAE_PSF_GridSampling_v1
+
+# Grid sampling configuration
+grid_size: 20  # NxN grid (20x20 = 400 points)
+kernel_size_small: 15  # Sparse PSF kernel size (15x15)
+
+# DeepLens raytracing configuration (inherited from PSF_model)
+deeplens:
+  lens_file: "/depot/chan129/users/harshana/svd_v2/lenses/thorlabs/acl12708u.json"
+  single_wavelength: false
+  spp: 100000  # Samples per pixel for ray tracing
+  kernel_size: 64  # Full resolution PSF (will be downsampled to 15x15)
+
+  wavelength_set_m: [!!float 450e-9, !!float 550e-9, !!float 650e-9]  # B G R
+
+  fov: !!float 0.015  # Field of view in meters
+
+  depth_min: !!float 400e-3  # Minimum depth in meters
+  depth_max: !!float 20000e-3  # Maximum depth in meters
+
+# Dataset configuration (using DummyDataset for on-the-fly generation)
+datasets:
+  train:
+    type: DummyDataset
+    size: 2000  # Number of iterations per epoch
+    use_shuffle: true
+
+  val:
+    type: DummyDataset
+    size: 50  # Validation iterations
+    use_shuffle: false
+
+# CVAE Network Architecture
+network:
+  type: CVAE_PSF  # Matches CVAE_PSF_config/CVAE_PSF_arch
+  kernel_size: 15  # PSF kernel size (15x15)
+  in_channels: 3  # RGB channels
+  latent_dim: 128  # Latent space dimension
+  hidden_dim: 512  # Hidden layer width in MLPs
+  num_layers: 4  # Number of layers in each MLP
+  num_frequencies: 10  # Positional encoding frequency bands (L=10)
+  activation: relu  # Activation function
+
+# Paths
+path:
+  root: /scratch/gilbreth/wweligam/experiments  # Experiment output directory
+  logging_dir: logs
+  resume_from_path: null  # Set to checkpoint path if resuming
+  resume_from_checkpoint: null  # 'latest' or specific checkpoint
+
+# Training settings
+train:
+  # Loss weights
+  recon_weight: !!float 1.0  # Reconstruction loss weight
+  kl_weight: !!float 1e-4  # KL divergence weight (beta)
+  smooth_weight: !!float 1e-3  # Smoothness regularization weight
+
+  # Optimizer configuration
+  optim:
+    scale_lr: false
+    use_8bit_adam: false
+    learning_rate: !!float 1e-4  # Initial learning rate
+    adam_beta1: 0.9
+    adam_beta2: 0.999
+    adam_weight_decay: 0.01
+    adam_epsilon: !!float 1e-8
+    max_grad_norm: 1.0
+
+  # Learning rate scheduler
+  scheduler:
+    type: cosine_with_restarts
+    lr_warmup_steps: 500  # Warmup steps
+    lr_num_cycles: 3  # Number of cosine cycles
+    lr_power: 1.0
+
+  loss: 1*MSE  # Base loss type (used in parent class, actual loss is custom)
+  gradient_accumulation_steps: 1
+  num_train_epochs: 50
+  batch_size: 64  # Batch size (sampled from grid)
+
+  max_train_steps: 100000  # Maximum training steps
+  validation_steps: 500  # Validation frequency
+  checkpointing_steps: 1000  # Checkpoint save frequency
+  checkpoints_total_limit: 3  # Keep only last N checkpoints
+
+  patched: false  # No patching needed for PSF
+  check_speed: false  # Disable profiling
+
+# Validation settings
+val:
+  save_images: true  # Save validation images
+  batch_size: 64  # Validation batch size
+  max_val_steps: 10  # Limit validation steps
+
+  metrics:
+    psnr:
+      crop: 0
+    mse:
+      crop: 0
