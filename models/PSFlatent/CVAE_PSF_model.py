@@ -48,8 +48,12 @@ class CVAE_PSF_model(PSF_model):
         # Setup the grid
         self.setup_grid()
 
-        # Network
-        self.net_cvae = define_network(opt.network)
+        # Network - create a copy to avoid modifying original config
+        import copy
+        network_config = copy.deepcopy(opt.network.__dict__)
+        from utils.misc import DictAsMember
+        network_opt = DictAsMember(**network_config)
+        self.net_cvae = define_network(network_opt)
         self.net_cvae.train()
         self.models.append(self.net_cvae)
 
