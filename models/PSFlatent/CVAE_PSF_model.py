@@ -280,9 +280,8 @@ class CVAE_PSF_model(PSF_model):
         ) / B
 
         # 3. Smoothness Loss on Prior Network
-        # Compute prior for all grid points
+        # Compute prior for all grid points (WITH gradients for smoothness loss)
         grid_coords = self.sample['grid_coords']  # (N*N, 2)
-        # Note: NO torch.no_grad() here - we need gradients for smoothness loss!
         # Split into smaller batches if grid is large
         grid_mu_list = []
         grid_batch_size = 256
