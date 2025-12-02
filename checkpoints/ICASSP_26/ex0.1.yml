@@ -61,7 +61,7 @@ datasets:
       #   keys: [lq_key]
       #   keys_new: [refined]
       #   model_name: Restormer_arch
-      #   model_path: /scratch/gilbreth/wweligam/experiments/SVD/RestormerRealColor 2025 03 03 12.48.38/Restormer_arch_1/
+      #   model_path: /scratch/gilbreth/tang843/experiments/SVD/RestormerRealColor 2025 03 03 12.48.38/Restormer_arch_1/
 
   
   val:
@@ -97,12 +97,12 @@ datasets:
       #   keys: [lq_key]
       #   keys_new: [refined]
       #   model_name: Restormer_arch
-      #   model_path: /scratch/gilbreth/wweligam/experiments/SVD/RestormerRealColor 2025 03 03 12.48.38/Restormer_arch_1/
+      #   model_path: /scratch/gilbreth/tang843/experiments/SVD/RestormerRealColor 2025 03 03 12.48.38/Restormer_arch_1/
 
 
 # path
 path:
-  root: /scratch/gilbreth/wweligam/experiments
+  root: /scratch/gilbreth/tang843/experiments
   logging_dir: logs
   resume_from_path: ~
   resume_from_checkpoint: ~

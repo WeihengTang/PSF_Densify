@@ -43,7 +43,7 @@ datasets:
       #   keys: [lq_key]
       #   keys_new: [refined]
       #   model_name: Restormer_arch
-      #   model_path: /scratch/gilbreth/wweligam/experiments/SVD/RestormerRealColor 2025 03 03 12.48.38/Restormer_arch_1/
+      #   model_path: /scratch/gilbreth/tang843/experiments/SVD/RestormerRealColor 2025 03 03 12.48.38/Restormer_arch_1/
 
   train2:
     type: HuggingFaceDataset
@@ -75,7 +75,7 @@ datasets:
       #   keys: [lq_key]
       #   keys_new: [refined]
       #   model_name: Restormer_arch
-      #   model_path: /scratch/gilbreth/wweligam/experiments/SVD/RestormerRealMono 2025 03 03 12.50.50/Restormer_arch_1/
+      #   model_path: /scratch/gilbreth/tang843/experiments/SVD/RestormerRealMono 2025 03 03 12.50.50/Restormer_arch_1/
 
   val1:
     type: HuggingFaceDataset
@@ -105,7 +105,7 @@ datasets:
       #   keys: [lq_key]
       #   keys_new: [refined]
       #   model_name: Restormer_arch
-      #   model_path: /scratch/gilbreth/wweligam/experiments/SVD/RestormerRealColor 2025 03 03 12.48.38/Restormer_arch_1/
+      #   model_path: /scratch/gilbreth/tang843/experiments/SVD/RestormerRealColor 2025 03 03 12.48.38/Restormer_arch_1/
 
   val2:
     type: HuggingFaceDataset
@@ -135,7 +135,7 @@ datasets:
       #   keys: [lq_key]
       #   keys_new: [refined]
       #   model_name: Restormer_arch
-      #   model_path: /scratch/gilbreth/wweligam/experiments/SVD/RestormerRealMono 2025 03 03 12.50.50/Restormer_arch_1/
+      #   model_path: /scratch/gilbreth/tang843/experiments/SVD/RestormerRealMono 2025 03 03 12.50.50/Restormer_arch_1/
 
 # network structures
 network:
@@ -150,9 +150,9 @@ network:
 
 # path
 path:
-  root: /scratch/gilbreth/wweligam/experiments
+  root: /scratch/gilbreth/tang843/experiments
   logging_dir: logs
-  resume_from_path: ~ # /scratch/gilbreth/wweligam/experiments/SVD/UnetSyntheticDeeplens 2025 08 29 11.09.16/
+  resume_from_path: ~ # /scratch/gilbreth/tang843/experiments/SVD/UnetSyntheticDeeplens 2025 08 29 11.09.16/
   resume_from_checkpoint: ~ # latest
 
 # training settings

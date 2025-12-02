@@ -70,9 +70,9 @@ datasets:
   
 # path
 path:
-  root: /scratch/gilbreth/wweligam/experiments
+  root: /scratch/gilbreth/tang843/experiments
   logging_dir: logs
-  resume_from_path: /scratch/gilbreth/wweligam/experiments/SR/RealSR 2025 11 12 15.44.40/
+  resume_from_path: /scratch/gilbreth/tang843/experiments/SR/RealSR 2025 11 12 15.44.40/
   resume_from_checkpoint: latest
 
 # training settings

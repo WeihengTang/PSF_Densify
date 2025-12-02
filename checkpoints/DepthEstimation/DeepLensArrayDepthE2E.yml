@@ -160,9 +160,9 @@ network:
 
 # path
 path:
-  root: /scratch/gilbreth/wweligam/experiments
+  root: /scratch/gilbreth/tang843/experiments
   logging_dir: logs
-  resume_from_path: /scratch/gilbreth/wweligam/experiments/DeepLens/DeepLensArrayDepthE2E 2025 10 06 22.34.27/
+  resume_from_path: /scratch/gilbreth/tang843/experiments/DeepLens/DeepLensArrayDepthE2E 2025 10 06 22.34.27/
   resume_from_checkpoint: latest
 
 # training settings

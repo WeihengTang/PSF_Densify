@@ -57,7 +57,7 @@ datasets:
       apply_model:
         keys: [lq_key]
         model_name: NAFNet_arch
-        model_path: /scratch/gilbreth/wweligam/experiments/SVD_Real/NAFNetRealColor 2025 09 12 11.09.55/checkpoint-15000/NAFNet_arch_1/
+        model_path: /scratch/gilbreth/tang843/experiments/SVD_Real/NAFNetRealColor 2025 09 12 11.09.55/checkpoint-15000/NAFNet_arch_1/
 
   
   val:
@@ -92,12 +92,12 @@ datasets:
       apply_model:
         keys: [lq_key]
         model_name: NAFNet_arch
-        model_path: /scratch/gilbreth/wweligam/experiments/SVD_Real/NAFNetRealColor 2025 09 12 11.09.55/checkpoint-15000/NAFNet_arch_1/
+        model_path: /scratch/gilbreth/tang843/experiments/SVD_Real/NAFNetRealColor 2025 09 12 11.09.55/checkpoint-15000/NAFNet_arch_1/
 
 
 # path
 path:
-  root: /scratch/gilbreth/wweligam/experiments
+  root: /scratch/gilbreth/tang843/experiments
   logging_dir: logs
   resume_from_path: ~
   resume_from_checkpoint: ~

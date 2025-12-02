@@ -80,9 +80,9 @@ network:
 
 # path
 path:
-  root: /scratch/gilbreth/wweligam/experiments
+  root: /scratch/gilbreth/tang843/experiments
   logging_dir: logs
-  resume_from_path: /scratch/gilbreth/wweligam/experiments/SVD/NAFNetSyntheticGaussian 2025 02 02 21.25.05/
+  resume_from_path: /scratch/gilbreth/tang843/experiments/SVD/NAFNetSyntheticGaussian 2025 02 02 21.25.05/
   resume_from_checkpoint: ~
 
 # training settings

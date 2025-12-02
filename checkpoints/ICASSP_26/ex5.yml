@@ -72,7 +72,7 @@ datasets:
       apply_model:
         keys: [lq_key]
         model_name: NAFNet_arch
-        model_path: /scratch/gilbreth/wweligam/experiments/SVD_Real/NAFNetRealColor 2025 09 12 11.09.55/checkpoint-15000/NAFNet_arch_1/
+        model_path: /scratch/gilbreth/tang843/experiments/SVD_Real/NAFNetRealColor 2025 09 12 11.09.55/checkpoint-15000/NAFNet_arch_1/
       normalize:
         mean: [0.5, 0.5, 0.5]
         std: [0.5, 0.5, 0.5]
@@ -113,7 +113,7 @@ datasets:
       apply_model:
         keys: [lq_key]
         model_name: NAFNet_arch
-        model_path: /scratch/gilbreth/wweligam/experiments/SVD_Real/NAFNetRealMono 2025 09 12 11.13.49/checkpoint-9000/NAFNet_arch_1/
+        model_path: /scratch/gilbreth/tang843/experiments/SVD_Real/NAFNetRealMono 2025 09 12 11.13.49/checkpoint-9000/NAFNet_arch_1/
       normalize:
         mean: [0.5]
         std: [0.5]
@@ -150,7 +150,7 @@ datasets:
       apply_model:
         keys: [lq_key]
         model_name: NAFNet_arch
-        model_path: /scratch/gilbreth/wweligam/experiments/SVD_Real/NAFNetRealColor 2025 09 12 11.09.55/checkpoint-15000/NAFNet_arch_1/
+        model_path: /scratch/gilbreth/tang843/experiments/SVD_Real/NAFNetRealColor 2025 09 12 11.09.55/checkpoint-15000/NAFNet_arch_1/
       normalize:
         mean: [0.5, 0.5, 0.5]
         std: [0.5, 0.5, 0.5]
@@ -187,16 +187,16 @@ datasets:
       apply_model:
         keys: [lq_key]
         model_name: NAFNet_arch
-        model_path: /scratch/gilbreth/wweligam/experiments/SVD_Real/NAFNetRealMono 2025 09 12 11.13.49/checkpoint-9000/NAFNet_arch_1/
+        model_path: /scratch/gilbreth/tang843/experiments/SVD_Real/NAFNetRealMono 2025 09 12 11.13.49/checkpoint-9000/NAFNet_arch_1/
       normalize:
         mean: [0.5]
         std: [0.5]
   
 # path
 path:
-  root: /scratch/gilbreth/wweligam/experiments
+  root: /scratch/gilbreth/tang843/experiments
   logging_dir: logs
-  resume_from_path: /scratch/gilbreth/wweligam/experiments/SVD_Real/Ex5_500_latent 2025 09 15 09.50.09/
+  resume_from_path: /scratch/gilbreth/tang843/experiments/SVD_Real/Ex5_500_latent 2025 09 15 09.50.09/
   resume_from_checkpoint: latest
 
 # training settings
