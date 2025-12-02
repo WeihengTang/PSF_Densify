@@ -269,15 +269,44 @@ class CVAE_PSF_model(PSF_model):
         # Reshape reconstruction back to image
         recon_psf = recon_psf.view(B, C, H, W)
 
-        # 1. Reconstruction Loss
-        recon_loss = F.mse_loss(recon_psf, psf)
+        # 1. Reconstruction Loss (MSE + L1 + Gradient)
+        # MSE for overall intensity matching
+        mse_loss = F.mse_loss(recon_psf, psf)
+
+        # L1 for robustness to outliers (preserves sharp features)
+        l1_loss = F.l1_loss(recon_psf, psf)
+
+        # Gradient loss to preserve PSF shape structure
+        def gradient_loss(pred, target):
+            # Compute gradients in x and y directions
+            pred_dx = pred[:, :, :, 1:] - pred[:, :, :, :-1]
+            pred_dy = pred[:, :, 1:, :] - pred[:, :, :-1, :]
+            target_dx = target[:, :, :, 1:] - target[:, :, :, :-1]
+            target_dy = target[:, :, 1:, :] - target[:, :, :-1, :]
+
+            loss_dx = F.l1_loss(pred_dx, target_dx)
+            loss_dy = F.l1_loss(pred_dy, target_dy)
+            return loss_dx + loss_dy
+
+        grad_loss = gradient_loss(recon_psf, psf)
+
+        # Combined reconstruction loss
+        recon_loss = mse_loss + 0.5 * l1_loss + 0.1 * grad_loss
 
         # 2. KL Divergence: KL(q(z|K,c) || p(z|c))
-        # Analytical KL between two Gaussians
-        kl_loss = -0.5 * torch.sum(
+        # Analytical KL between two Gaussians (per dimension)
+        kl_per_dim = -0.5 * (
             1 + logvar_q - logvar_p
             - (logvar_q.exp() + (mu_q - mu_p).pow(2)) / logvar_p.exp()
-        ) / B
+        )  # (B, latent_dim)
+
+        # Free bits: prevent posterior collapse by allowing minimum KL per dimension
+        # This prevents encoder from collapsing to prior for any dimension
+        free_bits = self.opt.train.get('free_bits', 0.5)  # Minimum KL per dim
+        kl_per_dim_clamped = torch.clamp(kl_per_dim, min=free_bits)
+
+        # Average over batch and sum over latent dimensions
+        kl_loss = torch.sum(kl_per_dim_clamped) / B
 
         # 3. Smoothness Loss on Prior Network
         # Compute prior for all grid points (WITH gradients for smoothness loss)

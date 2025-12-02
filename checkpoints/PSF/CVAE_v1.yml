@@ -61,9 +61,10 @@ path:
 # Training settings
 train:
   # Loss weights
-  recon_weight: !!float 1.0  # Reconstruction loss weight
-  kl_weight: !!float 1e-4  # KL divergence weight (beta)
+  recon_weight: !!float 1.0  # Reconstruction loss weight (MSE + L1 + Gradient)
+  kl_weight: !!float 1e-5  # KL divergence weight (REDUCED to prevent posterior collapse)
   smooth_weight: !!float 1e-3  # Smoothness regularization weight
+  free_bits: !!float 0.5  # Minimum KL per latent dimension (prevents collapse)
 
   # Optimizer configuration
   optim:
