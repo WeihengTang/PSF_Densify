@@ -48,6 +48,7 @@ if __name__ == '__main__':
         if args.test:
             opt['name'] = 'test'
             opt['tracker_project_name'] = 'test'
+            opt['is_train'] = False  # Skip training loop for validation-only
         opt.test = args.test
     opt.opt_path = args.opt
     
