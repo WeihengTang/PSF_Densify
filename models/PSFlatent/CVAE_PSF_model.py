@@ -282,15 +282,15 @@ class CVAE_PSF_model(PSF_model):
         # 3. Smoothness Loss on Prior Network
         # Compute prior for all grid points
         grid_coords = self.sample['grid_coords']  # (N*N, 2)
-        with torch.no_grad():
-            # Split into smaller batches if grid is large
-            grid_mu_list = []
-            grid_batch_size = 256
-            for i in range(0, len(grid_coords), grid_batch_size):
-                batch_coords = grid_coords[i:i+grid_batch_size]
-                _, mu_grid, _ = self.net_cvae.prior_network(batch_coords)
-                grid_mu_list.append(mu_grid)
-            grid_mu = torch.cat(grid_mu_list, dim=0)  # (N*N, latent_dim)
+        # Note: NO torch.no_grad() here - we need gradients for smoothness loss!
+        # Split into smaller batches if grid is large
+        grid_mu_list = []
+        grid_batch_size = 256
+        for i in range(0, len(grid_coords), grid_batch_size):
+            batch_coords = grid_coords[i:i+grid_batch_size]
+            _, mu_grid, _ = self.net_cvae.prior_network(batch_coords)
+            grid_mu_list.append(mu_grid)
+        grid_mu = torch.cat(grid_mu_list, dim=0)  # (N*N, latent_dim)
 
         # Compute smoothness loss using neighbor pairs
         smooth_loss = 0.0
