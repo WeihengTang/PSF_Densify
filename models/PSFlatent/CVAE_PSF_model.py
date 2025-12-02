@@ -369,14 +369,15 @@ class CVAE_PSF_model(PSF_model):
             prior_grid = einops.rearrange(prior_np[:N*N], '(h w) c H W -> c (h H) (w W)', h=N, w=N)
 
             # Log images (show green channel as grayscale)
+            # Add batch dimension: (1, H, W) -> (1, 1, H, W) for log_image
             log_image(self.opt, self.accelerator,
-                     1 - np.clip(psf_grid[1:2] / psf_grid.max(), 0, 1),
+                     (1 - np.clip(psf_grid[1:2] / psf_grid.max(), 0, 1))[np.newaxis, :, :, :],
                      f"val_psf_gt", self.global_step)
             log_image(self.opt, self.accelerator,
-                     1 - np.clip(recon_grid[1:2] / recon_grid.max(), 0, 1),
+                     (1 - np.clip(recon_grid[1:2] / recon_grid.max(), 0, 1))[np.newaxis, :, :, :],
                      f"val_psf_recon", self.global_step)
             log_image(self.opt, self.accelerator,
-                     1 - np.clip(prior_grid[1:2] / prior_grid.max(), 0, 1),
+                     (1 - np.clip(prior_grid[1:2] / prior_grid.max(), 0, 1))[np.newaxis, :, :, :],
                      f"val_psf_prior", self.global_step)
 
         # Log metrics
