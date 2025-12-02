@@ -35,7 +35,35 @@ class CVAE_PSF_model(PSF_model):
     """
 
     def __init__(self, opt, logger):
-        super(CVAE_PSF_model, self).__init__(opt, logger)
+        # Call BaseModel.__init__ instead of PSF_model.__init__
+        # to avoid double network initialization
+        from models.base_model import BaseModel
+        BaseModel.__init__(self, opt, logger)
+
+        # Copy DeepLens setup from PSF_model
+        self.m_scale = 1e3
+        self.psf_rescale_factor = 1
+
+        settings = opt.deeplens
+        self.single_wavelength = settings.get("single_wavelength", False)
+        self.spp = settings.get("spp", 100000)
+        self.kernel_size = settings.get("kernel_size", 65)
+
+        self.depth_min = -settings.depth_min * self.m_scale
+        self.depth_max = -settings.depth_max * self.m_scale
+        self.fov = settings.fov
+        self.foc_d_arr = np.array(
+            [
+                -400, -425, -450, -500, -550, -600, -650, -700, -800,
+                -900, -1000, -1250, -1500, -1750, -2000, -2500, -3000,
+                -4000, -5000, -6000, -8000, -10000, -12000, -15000, -20000,
+            ]
+        )
+        self.foc_z_arr = (self.foc_d_arr - self.depth_min) / (self.depth_max - self.depth_min)
+
+        self.wavelength_set_m = np.array(settings.wavelength_set_m)
+        from deeplens.geolens import GeoLens
+        self.lens = GeoLens(filename=settings.lens_file, device=self.accelerator.device)
 
         # Grid configuration
         self.grid_size = opt.get('grid_size', 20)  # NxN grid
@@ -48,7 +76,7 @@ class CVAE_PSF_model(PSF_model):
         # Setup the grid
         self.setup_grid()
 
-        # Network
+        # Network (CVAE instead of PSF_model's net_g)
         self.net_cvae = define_network(opt.network)
         self.net_cvae.train()
         self.models.append(self.net_cvae)
@@ -105,6 +133,11 @@ class CVAE_PSF_model(PSF_model):
         self.logger.info(f"Grid setup: {N}x{N} = {N*N} points")
         self.logger.info(f"Grid coordinates range: x=[{x_flat.min():.2f}, {x_flat.max():.2f}], "
                         f"y=[{y_flat.min():.2f}, {y_flat.max():.2f}]")
+
+    def z2depth(self, z):
+        """Convert normalized depth [0,1] to actual depth in mm."""
+        depth = z * (self.depth_max - self.depth_min) + self.depth_min
+        return depth
 
     def generate_grid_psfs(self, foc_z):
         """
