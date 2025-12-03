@@ -1,0 +1,110 @@
+# Full CVAE configuration with ALL loss components enabled
+# Use this for comparison with baseline (MSE+KL only)
+
+name: PSF_CVAE
+model_type: CVAE_PSF_model
+is_train: true
+report_to: comet_ml
+push_to_hub: false
+num_gpu: 1
+seed: 42
+mixed_precision: !!str no
+allow_tf32: false
+tracker_project_name: PSF_CVAE
+experiment_key: CVAE_PSF_Full_AllLosses
+
+# Grid sampling configuration
+grid_size: 20
+kernel_size_small: 15
+
+# DeepLens configuration
+deeplens:
+  lens_file: ./lenses/Aspherical_Landscape_S1H_36mm.json
+  wavelength_set_m: [460e-9, 550e-9, 640e-9]
+  depth_min: 0.4
+  depth_max: 20
+  fov: 30
+  kernel_size: 15
+  spp: 100000
+  single_wavelength: false
+
+# Dummy dataset (on-the-fly PSF generation)
+datasets:
+  train:
+    name: DummyDataset
+    type: DummyDataset
+    length: 100000
+  val:
+    name: DummyDataset
+    type: DummyDataset
+    length: 1000
+    use_shuffle: false
+    num_worker_per_gpu: 0
+    batch_size: 1
+
+# Network structure
+network:
+  type: CVAE_PSF
+  kernel_size: 15
+  in_channels: 3
+  latent_dim: 128
+  hidden_dim: 512
+  num_layers: 4
+  num_frequencies: 10
+  activation: relu
+
+# Paths
+path:
+  root: /scratch/gilbreth/tang843/experiments
+  logging_dir: logs
+  resume_from_path: null
+  resume_from_checkpoint: null
+
+# Training settings - ALL LOSS COMPONENTS ENABLED
+train:
+  # Loss component toggles (ALL TRUE for full ablation)
+  use_l1_loss: true           # Enable L1 loss
+  use_gradient_loss: true     # Enable gradient loss
+  use_smooth_loss: true       # Enable smoothness loss
+  use_free_bits: true         # Enable free bits
+
+  # Loss weights
+  recon_weight: !!float 1.0
+  kl_weight: !!float 1e-5     # Reduced when using free bits
+  smooth_weight: !!float 1e-3
+  l1_weight: !!float 0.5
+  grad_weight: !!float 0.1
+  free_bits: !!float 0.5
+
+  # Optimizer configuration
+  optim:
+    scale_lr: false
+    use_8bit_adam: false
+    learning_rate: !!float 1e-4
+    adam_beta1: 0.9
+    adam_beta2: 0.999
+    adam_weight_decay: 0.01
+    adam_epsilon: !!float 1e-8
+    max_grad_norm: 1.0
+
+  # Learning rate scheduler
+  scheduler:
+    type: cosine_with_restarts
+    lr_warmup_steps: 500
+    lr_num_cycles: 3
+    lr_power: 1.0
+
+  loss: 1*MSE
+  gradient_accumulation_steps: 1
+  num_train_epochs: 50
+  batch_size: 64
+
+  max_train_steps: 100000
+  validation_steps: 500
+  checkpointing_steps: 1000
+  checkpoints_total_limit: 3
+  check_speed: false
+  patched: false
+
+val:
+  save_images: true

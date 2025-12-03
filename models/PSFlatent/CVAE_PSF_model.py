@@ -81,10 +81,28 @@ class CVAE_PSF_model(PSF_model):
         self.net_cvae.train()
         self.models.append(self.net_cvae)
 
+        # Loss component toggles (for ablation studies)
+        self.use_l1_loss = opt.train.get('use_l1_loss', False)
+        self.use_gradient_loss = opt.train.get('use_gradient_loss', False)
+        self.use_smooth_loss = opt.train.get('use_smooth_loss', False)
+        self.use_free_bits = opt.train.get('use_free_bits', False)
+
         # Loss weights
         self.recon_weight = opt.train.get('recon_weight', 1.0)
         self.kl_weight = opt.train.get('kl_weight', 1e-4)
         self.smooth_weight = opt.train.get('smooth_weight', 1e-3)
+        self.l1_weight = opt.train.get('l1_weight', 0.5)
+        self.grad_weight = opt.train.get('grad_weight', 0.1)
+        self.free_bits = opt.train.get('free_bits', 0.5)
+
+        # Log which loss components are enabled
+        self.logger.info(f"Loss components enabled:")
+        self.logger.info(f"  MSE: True (always enabled)")
+        self.logger.info(f"  L1: {self.use_l1_loss}")
+        self.logger.info(f"  Gradient: {self.use_gradient_loss}")
+        self.logger.info(f"  KL: True (always enabled)")
+        self.logger.info(f"  Free bits: {self.use_free_bits}")
+        self.logger.info(f"  Smoothness: {self.use_smooth_loss}")
 
         # Cache for grid PSFs (computed once per epoch)
         self.cached_grid_psfs = None
@@ -269,77 +287,89 @@ class CVAE_PSF_model(PSF_model):
         # Reshape reconstruction back to image
         recon_psf = recon_psf.view(B, C, H, W)
 
-        # 1. Reconstruction Loss (MSE + L1 + Gradient)
-        # MSE for overall intensity matching
+        # 1. Reconstruction Loss (MSE always, optionally + L1 + Gradient)
+        # MSE for overall intensity matching (always enabled)
         mse_loss = F.mse_loss(recon_psf, psf)
+        recon_loss = mse_loss
 
-        # L1 for robustness to outliers (preserves sharp features)
-        l1_loss = F.l1_loss(recon_psf, psf)
+        # L1 for robustness to outliers (preserves sharp features) - OPTIONAL
+        if self.use_l1_loss:
+            l1_loss = F.l1_loss(recon_psf, psf)
+            recon_loss = recon_loss + self.l1_weight * l1_loss
+        else:
+            l1_loss = torch.tensor(0.0, device=psf.device)
 
-        # Gradient loss to preserve PSF shape structure
-        def gradient_loss(pred, target):
-            # Compute gradients in x and y directions
-            pred_dx = pred[:, :, :, 1:] - pred[:, :, :, :-1]
-            pred_dy = pred[:, :, 1:, :] - pred[:, :, :-1, :]
-            target_dx = target[:, :, :, 1:] - target[:, :, :, :-1]
-            target_dy = target[:, :, 1:, :] - target[:, :, :-1, :]
+        # Gradient loss to preserve PSF shape structure - OPTIONAL
+        if self.use_gradient_loss:
+            def gradient_loss(pred, target):
+                # Compute gradients in x and y directions
+                pred_dx = pred[:, :, :, 1:] - pred[:, :, :, :-1]
+                pred_dy = pred[:, :, 1:, :] - pred[:, :, :-1, :]
+                target_dx = target[:, :, :, 1:] - target[:, :, :, :-1]
+                target_dy = target[:, :, 1:, :] - target[:, :, :-1, :]
 
-            loss_dx = F.l1_loss(pred_dx, target_dx)
-            loss_dy = F.l1_loss(pred_dy, target_dy)
-            return loss_dx + loss_dy
+                loss_dx = F.l1_loss(pred_dx, target_dx)
+                loss_dy = F.l1_loss(pred_dy, target_dy)
+                return loss_dx + loss_dy
 
-        grad_loss = gradient_loss(recon_psf, psf)
+            grad_loss = gradient_loss(recon_psf, psf)
+            recon_loss = recon_loss + self.grad_weight * grad_loss
+        else:
+            grad_loss = torch.tensor(0.0, device=psf.device)
 
-        # Combined reconstruction loss
-        recon_loss = mse_loss + 0.5 * l1_loss + 0.1 * grad_loss
-
-        # 2. KL Divergence: KL(q(z|K,c) || p(z|c))
+        # 2. KL Divergence: KL(q(z|K,c) || p(z|c)) - ALWAYS ENABLED
         # Analytical KL between two Gaussians (per dimension)
         kl_per_dim = -0.5 * (
             1 + logvar_q - logvar_p
             - (logvar_q.exp() + (mu_q - mu_p).pow(2)) / logvar_p.exp()
         )  # (B, latent_dim)
 
-        # Free bits: prevent posterior collapse by allowing minimum KL per dimension
+        # Free bits: prevent posterior collapse by allowing minimum KL per dimension - OPTIONAL
         # This prevents encoder from collapsing to prior for any dimension
-        free_bits = self.opt.train.get('free_bits', 0.5)  # Minimum KL per dim
-        kl_per_dim_clamped = torch.clamp(kl_per_dim, min=free_bits)
+        if self.use_free_bits:
+            kl_per_dim_clamped = torch.clamp(kl_per_dim, min=self.free_bits)
+        else:
+            kl_per_dim_clamped = kl_per_dim
 
         # Average over batch and sum over latent dimensions
         kl_loss = torch.sum(kl_per_dim_clamped) / B
 
-        # 3. Smoothness Loss on Prior Network
-        # Compute prior for all grid points (WITH gradients for smoothness loss)
-        grid_coords = self.sample['grid_coords']  # (N*N, 2)
-        # Split into smaller batches if grid is large
-        grid_mu_list = []
-        grid_batch_size = 256
-        for i in range(0, len(grid_coords), grid_batch_size):
-            batch_coords = grid_coords[i:i+grid_batch_size]
-            _, mu_grid, _ = self.net_cvae.prior_network(batch_coords)
-            grid_mu_list.append(mu_grid)
-        grid_mu = torch.cat(grid_mu_list, dim=0)  # (N*N, latent_dim)
+        # 3. Smoothness Loss on Prior Network - OPTIONAL
+        if self.use_smooth_loss:
+            # Compute prior for all grid points (WITH gradients for smoothness loss)
+            grid_coords = self.sample['grid_coords']  # (N*N, 2)
+            # Split into smaller batches if grid is large
+            grid_mu_list = []
+            grid_batch_size = 256
+            for i in range(0, len(grid_coords), grid_batch_size):
+                batch_coords = grid_coords[i:i+grid_batch_size]
+                _, mu_grid, _ = self.net_cvae.prior_network(batch_coords)
+                grid_mu_list.append(mu_grid)
+            grid_mu = torch.cat(grid_mu_list, dim=0)  # (N*N, latent_dim)
 
-        # Compute smoothness loss using neighbor pairs
-        smooth_loss = 0.0
-        num_pairs = 0
-        for idx, neighbors in self.grid_neighbors.items():
-            if len(neighbors) > 0:
-                mu_i = grid_mu[idx]  # (latent_dim,)
-                for neighbor_idx in neighbors:
-                    mu_j = grid_mu[neighbor_idx]
-                    smooth_loss += F.mse_loss(mu_i, mu_j)
-                    num_pairs += 1
+            # Compute smoothness loss using neighbor pairs
+            smooth_loss = 0.0
+            num_pairs = 0
+            for idx, neighbors in self.grid_neighbors.items():
+                if len(neighbors) > 0:
+                    mu_i = grid_mu[idx]  # (latent_dim,)
+                    for neighbor_idx in neighbors:
+                        mu_j = grid_mu[neighbor_idx]
+                        smooth_loss += F.mse_loss(mu_i, mu_j)
+                        num_pairs += 1
 
-        if num_pairs > 0:
-            smooth_loss = smooth_loss / num_pairs
+            if num_pairs > 0:
+                smooth_loss = smooth_loss / num_pairs
+            else:
+                smooth_loss = torch.tensor(0.0, device=psf.device)
+        else:
+            smooth_loss = torch.tensor(0.0, device=psf.device)
 
-        # Total loss
-        total_loss = (
-            self.recon_weight * recon_loss +
-            self.kl_weight * kl_loss +
-            self.smooth_weight * smooth_loss
-        )
+        # Total loss (only include enabled components)
+        total_loss = self.recon_weight * recon_loss + self.kl_weight * kl_loss
+
+        if self.use_smooth_loss:
+            total_loss = total_loss + self.smooth_weight * smooth_loss
 
         # Backward pass
         self.accelerator.backward(total_loss)
@@ -351,12 +381,15 @@ class CVAE_PSF_model(PSF_model):
         for optimizer in self.optimizers:
             optimizer.step()
 
-        # Return losses for logging
+        # Return losses for logging (all components, even if disabled they'll be 0)
         return {
             'all': total_loss.detach(),
             'recon': recon_loss.detach(),
+            'mse': mse_loss.detach(),
+            'l1': l1_loss.detach() if isinstance(l1_loss, torch.Tensor) else torch.tensor(0.0),
+            'grad': grad_loss.detach() if isinstance(grad_loss, torch.Tensor) else torch.tensor(0.0),
             'kl': kl_loss.detach(),
-            'smooth': smooth_loss.detach() if isinstance(smooth_loss, torch.Tensor) else smooth_loss,
+            'smooth': smooth_loss.detach() if isinstance(smooth_loss, torch.Tensor) else torch.tensor(0.0),
         }
 
     def validate_step(self, batch, idx, lq_key, gt_key):
