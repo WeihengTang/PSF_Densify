@@ -10,8 +10,25 @@ allow_tf32: false
 tracker_project_name: PSF_CVAE
 experiment_key: CVAE_PSF_GridSampling_v1
 
-# Grid sampling configuration
-grid_size: 20  # NxN grid (20x20 = 400 points)
+# 4D Grid sampling configuration (x, y, z, f)
+# Spatial field grid (x, y) - increased resolution
+grid_size_xy: 100  # 100x100 spatial grid cells
+
+# Depth and focus grids
+grid_size_z: 50    # 50 object depth steps
+grid_size_f: 50    # 50 focus distance steps
+
+# Physical ranges for smartphone-scale optics (meters)
+z_min: !!float 0.1   # Minimum object depth (0.1m = 10cm, macro range)
+z_max: !!float 3.0   # Maximum object depth (3.0m, far field)
+f_min: !!float 0.1   # Minimum focus distance (0.1m)
+f_max: !!float 3.0   # Maximum focus distance (3.0m)
+
+# Stratified sampling with jitter
+use_jitter: true           # Enable jittered sampling (recommended)
+samples_per_batch: 256     # Number of 4D samples per training batch
+
+# PSF kernel configuration
 kernel_size_small: 15  # Sparse PSF kernel size (15x15)
 
 # DeepLens raytracing configuration (inherited from PSF_model)
@@ -23,10 +40,12 @@ deeplens:
 
   wavelength_set_m: [!!float 450e-9, !!float 550e-9, !!float 650e-9]  # B G R
 
-  fov: !!float 0.015  # Field of view in meters
+  fov: !!float 0.015  # Field of view in meters (approx smartphone sensor)
 
-  depth_min: !!float 400e-3  # Minimum depth in meters
-  depth_max: !!float 20000e-3  # Maximum depth in meters
+  # Depth range for DeepLens raytracing (smartphone-scale)
+  # Note: These are used by the legacy foc_z_arr; new 4D sampling uses z_min/z_max above
+  depth_min: !!float 100e-3   # Minimum depth: 0.1m (100mm) - macro range
+  depth_max: !!float 3000e-3  # Maximum depth: 3.0m (3000mm) - far field
 
 # Dataset configuration (using DummyDataset for on-the-fly generation)
 datasets:
@@ -50,6 +69,7 @@ network:
   num_layers: 4  # Number of layers in each MLP
   num_frequencies: 10  # Positional encoding frequency bands (L=10)
   activation: relu  # Activation function
+  coord_dim: 4  # 4D coordinates: (x, y, z, f)
 
 # Paths
 path:

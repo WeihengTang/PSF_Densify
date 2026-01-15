@@ -23,10 +23,13 @@ class PositionalEncoding(nn.Module):
 
     Args:
         num_frequencies: Number of frequency bands (L)
-        input_dim: Dimension of input coordinates (default 2 for x,y)
+        input_dim: Dimension of input coordinates (default 4 for x, y, z, f)
+            - x, y: Spatial field coordinates (normalized to [-1, 1])
+            - z: Object depth (normalized to [0, 1])
+            - f: Focus distance (normalized to [0, 1])
     """
 
-    def __init__(self, num_frequencies=10, input_dim=2):
+    def __init__(self, num_frequencies=10, input_dim=4):
         super().__init__()
         self.num_frequencies = num_frequencies
         self.input_dim = input_dim
@@ -131,6 +134,7 @@ class CVAE_PSF_config(PretrainedConfig):
         num_layers: Number of layers in MLPs
         num_frequencies: Number of frequency bands for positional encoding
         activation: Activation function name
+        coord_dim: Dimension of input coordinates (4 for x, y, z, f)
     """
     model_type = "CVAE_PSF"
 
@@ -143,6 +147,7 @@ class CVAE_PSF_config(PretrainedConfig):
         num_layers=4,
         num_frequencies=10,
         activation='relu',
+        coord_dim=4,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -153,10 +158,10 @@ class CVAE_PSF_config(PretrainedConfig):
         self.num_layers = num_layers
         self.num_frequencies = num_frequencies
         self.activation = activation
+        self.coord_dim = coord_dim  # (x, y, z, f) - 4D coordinates
 
         # Derived dimensions
         self.psf_dim = in_channels * kernel_size * kernel_size
-        self.coord_dim = 2  # (x, y)
         self.pe_dim = self.coord_dim * num_frequencies * 2  # Positional encoding dim
 
 
@@ -227,7 +232,8 @@ class CVAE_PSF_arch(PreTrainedModel):
         Apply positional encoding to coordinates.
 
         Args:
-            coords: (B, 2) normalized coordinates
+            coords: (B, coord_dim) normalized coordinates
+                - For 4D: (x, y, z, f) where x,y in [-1,1] and z,f in [0,1]
 
         Returns:
             pe: (B, pe_dim) positional encoding
@@ -240,7 +246,7 @@ class CVAE_PSF_arch(PreTrainedModel):
 
         Args:
             psf_flat: (B, psf_dim) flattened PSF
-            coords: (B, 2) coordinates
+            coords: (B, coord_dim) coordinates (x, y, z, f)
 
         Returns:
             mu_q: (B, latent_dim) posterior mean
@@ -264,9 +270,10 @@ class CVAE_PSF_arch(PreTrainedModel):
         Compute prior parameters conditioned on coordinates.
 
         Args:
-            coords: (B, 2) coordinates
+            coords: (B, coord_dim) coordinates (x, y, z, f)
 
         Returns:
+            pe: (B, pe_dim) positional encoding
             mu_p: (B, latent_dim) prior mean
             logvar_p: (B, latent_dim) prior log variance
         """
@@ -302,7 +309,7 @@ class CVAE_PSF_arch(PreTrainedModel):
 
         Args:
             z: (B, latent_dim) latent code
-            coords: (B, 2) coordinates
+            coords: (B, coord_dim) coordinates (x, y, z, f)
 
         Returns:
             psf_flat: (B, psf_dim) reconstructed PSF (flattened)
@@ -357,7 +364,7 @@ class CVAE_PSF_arch(PreTrainedModel):
 
         Args:
             psf_flat: (B, psf_dim) flattened input PSF
-            coords: (B, 2) coordinates
+            coords: (B, coord_dim) coordinates (x, y, z, f)
 
         Returns:
             recon_psf: (B, psf_dim) reconstructed PSF
@@ -385,7 +392,7 @@ class CVAE_PSF_arch(PreTrainedModel):
         Sample PSF from prior distribution (generation mode).
 
         Args:
-            coords: (B, 2) coordinates
+            coords: (B, coord_dim) coordinates (x, y, z, f)
 
         Returns:
             psf_flat: (B, psf_dim) generated PSF
