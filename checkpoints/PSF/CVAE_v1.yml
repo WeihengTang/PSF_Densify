@@ -11,32 +11,32 @@ tracker_project_name: PSF_CVAE
 experiment_key: CVAE_PSF_GridSampling_v1
 
 # 4D Grid sampling configuration (x, y, z, f)
-# Spatial field grid (x, y) - increased resolution
-grid_size_xy: 100  # 100x100 spatial grid cells
+# Spatial field grid (x, y) - high resolution
+grid_size_xy: 2000  # 2000x2000 spatial grid cells
 
 # Depth and focus grids
 grid_size_z: 50    # 50 object depth steps
-grid_size_f: 50    # 50 focus distance steps
+grid_size_f: 1     # Fixed focus distance (single value)
 
-# Physical ranges for smartphone-scale optics (meters)
-z_min: !!float 0.1   # Minimum object depth (0.1m = 10cm, macro range)
-z_max: !!float 3.0   # Maximum object depth (3.0m, far field)
-f_min: !!float 0.1   # Minimum focus distance (0.1m)
-f_max: !!float 3.0   # Maximum focus distance (3.0m)
+# Physical ranges (meters)
+z_min: !!float 0.3   # Minimum object depth (30cm)
+z_max: !!float 3.0   # Maximum object depth (300cm)
+f_min: !!float 0.8   # Focus distance fixed at 80cm
+f_max: !!float 0.8   # Focus distance fixed at 80cm
 
 # Stratified sampling with jitter
 use_jitter: true           # Enable jittered sampling (recommended)
 samples_per_batch: 256     # Number of 4D samples per training batch
 
 # PSF kernel configuration
-kernel_size_small: 100  # PSF kernel size (100x100)
+kernel_size_small: 64  # PSF kernel size (64x64)
 
 # DeepLens raytracing configuration (inherited from PSF_model)
 deeplens:
   lens_file: "/depot/chan129/users/harshana/svd_v2/lenses/thorlabs/acl12708u.json"
   single_wavelength: false
   spp: 100000  # Samples per pixel for ray tracing
-  kernel_size: 100  # Full resolution PSF (100x100)
+  kernel_size: 64  # PSF kernel size (64x64)
 
   wavelength_set_m: [!!float 450e-9, !!float 550e-9, !!float 650e-9]  # B G R
 
@@ -62,7 +62,7 @@ datasets:
 # CVAE Network Architecture
 network:
   type: CVAE_PSF  # Matches CVAE_PSF_config/CVAE_PSF_arch
-  kernel_size: 100  # PSF kernel size (100x100)
+  kernel_size: 64  # PSF kernel size (64x64)
   in_channels: 3  # RGB channels
   latent_dim: 128  # Latent space dimension
   hidden_dim: 512  # Hidden layer width in MLPs

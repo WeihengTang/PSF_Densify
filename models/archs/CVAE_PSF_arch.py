@@ -140,7 +140,7 @@ class CVAE_PSF_config(PretrainedConfig):
 
     def __init__(
         self,
-        kernel_size=100,
+        kernel_size=64,
         in_channels=3,
         latent_dim=128,
         hidden_dim=256,

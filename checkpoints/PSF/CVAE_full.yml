@@ -14,25 +14,25 @@ tracker_project_name: PSF_CVAE
 experiment_key: CVAE_PSF_Full_AllLosses
 
 # 4D Grid sampling configuration (x, y, z, f)
-# Spatial field grid (x, y) - increased resolution
-grid_size_xy: 100  # 100x100 spatial grid cells
+# Spatial field grid (x, y) - high resolution
+grid_size_xy: 2000  # 2000x2000 spatial grid cells
 
 # Depth and focus grids
 grid_size_z: 50    # 50 object depth steps
-grid_size_f: 50    # 50 focus distance steps
+grid_size_f: 1     # Fixed focus distance (single value)
 
-# Physical ranges for smartphone-scale optics (meters)
-z_min: !!float 0.1   # Minimum object depth (0.1m = 10cm, macro range)
-z_max: !!float 3.0   # Maximum object depth (3.0m, far field)
-f_min: !!float 0.1   # Minimum focus distance (0.1m)
-f_max: !!float 3.0   # Maximum focus distance (3.0m)
+# Physical ranges (meters)
+z_min: !!float 0.3   # Minimum object depth (30cm)
+z_max: !!float 3.0   # Maximum object depth (300cm)
+f_min: !!float 0.8   # Focus distance fixed at 80cm
+f_max: !!float 0.8   # Focus distance fixed at 80cm
 
 # Stratified sampling with jitter
 use_jitter: true           # Enable jittered sampling (recommended)
 samples_per_batch: 256     # Number of 4D samples per training batch
 
 # PSF kernel configuration
-kernel_size_small: 100  # PSF kernel size (100x100)
+kernel_size_small: 64  # PSF kernel size (64x64)
 
 # DeepLens configuration (smartphone-scale)
 deeplens:
@@ -41,7 +41,7 @@ deeplens:
   depth_min: !!float 100e-3   # Minimum depth: 0.1m (100mm)
   depth_max: !!float 3000e-3  # Maximum depth: 3.0m (3000mm)
   fov: !!float 0.015          # Field of view in meters
-  kernel_size: 100            # Full resolution PSF (100x100)
+  kernel_size: 64             # PSF kernel size (64x64)
   spp: 100000
   single_wavelength: false
 
@@ -62,7 +62,7 @@ datasets:
 # Network structure
 network:
   type: CVAE_PSF
-  kernel_size: 100
+  kernel_size: 64
   in_channels: 3
   latent_dim: 128
   hidden_dim: 512

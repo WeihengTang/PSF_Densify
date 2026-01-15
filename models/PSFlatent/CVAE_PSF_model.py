@@ -67,19 +67,19 @@ class CVAE_PSF_model(PSF_model):
 
         # Grid configuration for 4D coordinate sampling (x, y, z, f)
         # Spatial field resolution (x, y)
-        self.grid_size_xy = opt.get('grid_size_xy', 100)  # 100x100 spatial grid
+        self.grid_size_xy = opt.get('grid_size_xy', 2000)  # 2000x2000 spatial grid
         # Depth and focus resolution
         self.grid_size_z = opt.get('grid_size_z', 50)  # 50 depth steps
-        self.grid_size_f = opt.get('grid_size_f', 50)  # 50 focus distance steps
+        self.grid_size_f = opt.get('grid_size_f', 1)  # Fixed focus distance
 
-        # Physical ranges for smartphone-scale optics
-        self.z_min = opt.get('z_min', 0.1)  # Minimum object depth in meters
-        self.z_max = opt.get('z_max', 3.0)  # Maximum object depth in meters
-        self.f_min = opt.get('f_min', 0.1)  # Minimum focus distance in meters
-        self.f_max = opt.get('f_max', 3.0)  # Maximum focus distance in meters
+        # Physical ranges
+        self.z_min = opt.get('z_min', 0.3)  # Minimum object depth in meters (30cm)
+        self.z_max = opt.get('z_max', 3.0)  # Maximum object depth in meters (300cm)
+        self.f_min = opt.get('f_min', 0.8)  # Focus distance fixed at 80cm
+        self.f_max = opt.get('f_max', 0.8)  # Focus distance fixed at 80cm
 
         # PSF kernel size
-        self.kernel_size_small = opt.get('kernel_size_small', 100)  # PSF size (100x100)
+        self.kernel_size_small = opt.get('kernel_size_small', 64)  # PSF size (64x64)
 
         # Jittered sampling configuration
         self.use_jitter = opt.get('use_jitter', True)  # Enable stratified sampling with jitter
