@@ -348,13 +348,14 @@ class CVAE_PSF_model(PSF_model):
         """
         lens = self.lens
         num_points = coords.shape[0]
+        device = coords.device
 
         with torch.no_grad():
-            # Extract coordinates
-            x = coords[:, 0]  # Spatial x in [-1, 1]
-            y = coords[:, 1]  # Spatial y in [-1, 1]
-            z_norm = coords[:, 2]  # Normalized depth in [0, 1]
-            f_norm = coords[:, 3]  # Normalized focus in [0, 1]
+            # Extract coordinates (ensure on same device)
+            x = coords[:, 0].cpu()  # Spatial x in [-1, 1]
+            y = coords[:, 1].cpu()  # Spatial y in [-1, 1]
+            z_norm = coords[:, 2].cpu()  # Normalized depth in [0, 1]
+            f_norm = coords[:, 3].cpu()  # Normalized focus in [0, 1]
 
             # Convert normalized depth to physical depth (mm)
             depth_mm = self.normalized_z_to_depth_mm(z_norm)
@@ -366,7 +367,7 @@ class CVAE_PSF_model(PSF_model):
 
             # Quantize focus distances for batching (reduces raytrace calls)
             num_focus_bins = min(10, num_points)  # At most 10 different focus settings
-            f_bins = torch.linspace(0, 1, num_focus_bins + 1)
+            f_bins = torch.linspace(0, 1, num_focus_bins + 1)  # CPU tensor
 
             for i in range(num_focus_bins):
                 # Find points in this focus bin
@@ -393,16 +394,17 @@ class CVAE_PSF_model(PSF_model):
                 points = torch.stack((x_bin, y_bin, depth_bin), dim=-1)
                 psf_bin = lens.psf_rgb(points=points, ks=self.kernel_size, spp=self.spp)
 
-                # Store with original indices
+                # Store with original indices (mask on CPU)
                 psf_list.append((mask, psf_bin))
 
             # Reassemble PSFs in original order
             psfs = torch.zeros(num_points, 3, self.kernel_size, self.kernel_size,
-                             device=self.accelerator.device)
+                             device=device)
             for mask, psf_bin in psf_list:
-                psfs[mask] = psf_bin
+                # Move psf_bin to target device if needed
+                psfs[mask] = psf_bin.to(device)
 
-            # Downsample to sparse kernel size (15x15) if needed
+            # Downsample to kernel_size_small if needed
             if self.kernel_size != self.kernel_size_small:
                 psfs = self.downsample_psf(psfs, self.kernel_size_small)
 
@@ -699,17 +701,41 @@ class CVAE_PSF_model(PSF_model):
             recon_grid = einops.rearrange(recon_np[:N*N], '(h w) c H W -> c (h H) (w W)', h=N, w=N)
             prior_grid = einops.rearrange(prior_np[:N*N], '(h w) c H W -> c (h H) (w W)', h=N, w=N)
 
-            # Log images (show green channel as grayscale)
-            # Add batch dimension: (1, H, W) -> (1, 1, H, W) for log_image
+            # Helper function to normalize PSF grid for visualization
+            def normalize_psf_grid(grid, name=""):
+                """Normalize PSF grid for visualization, handling edge cases."""
+                # Extract green channel
+                green_channel = grid[1:2]  # (1, H, W)
+
+                # Get max value with epsilon to prevent division by zero
+                max_val = green_channel.max()
+                if max_val < 1e-8:
+                    # If all values are near zero, return white image
+                    self.logger.warning(f"{name} has max value {max_val:.2e}, using uniform output")
+                    return np.ones_like(green_channel)[np.newaxis, :, :, :]
+
+                # Normalize to [0, 1] and invert (PSF centers become dark spots on white)
+                normalized = np.clip(green_channel / max_val, 0, 1)
+                inverted = 1 - normalized
+
+                # Add batch dimension: (1, H, W) -> (1, 1, H, W)
+                return inverted[np.newaxis, :, :, :]
+
+            # Log images (show green channel as grayscale, inverted)
             log_image(self.opt, self.accelerator,
-                     (1 - np.clip(psf_grid[1:2] / psf_grid.max(), 0, 1))[np.newaxis, :, :, :],
+                     normalize_psf_grid(psf_grid, "val_psf_gt"),
                      f"val_psf_gt", self.global_step)
             log_image(self.opt, self.accelerator,
-                     (1 - np.clip(recon_grid[1:2] / recon_grid.max(), 0, 1))[np.newaxis, :, :, :],
+                     normalize_psf_grid(recon_grid, "val_psf_recon"),
                      f"val_psf_recon", self.global_step)
             log_image(self.opt, self.accelerator,
-                     (1 - np.clip(prior_grid[1:2] / prior_grid.max(), 0, 1))[np.newaxis, :, :, :],
+                     normalize_psf_grid(prior_grid, "val_psf_prior"),
                      f"val_psf_prior", self.global_step)
+
+            # Log debug info about PSF values
+            self.logger.info(f"PSF value ranges - GT: [{psf_grid.min():.2e}, {psf_grid.max():.2e}], "
+                           f"Recon: [{recon_grid.min():.2e}, {recon_grid.max():.2e}], "
+                           f"Prior: [{prior_grid.min():.2e}, {prior_grid.max():.2e}]")
 
         # Log metrics
         mse = F.mse_loss(recon_psf, psf).item()
