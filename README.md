@@ -121,7 +121,7 @@ use_free_bits: true/false
 ### Model Overview
 
 ```
-Input: PSF K (15×15×3) + 4D Coordinate c (x, y, z, f)
+Input: PSF K (100×100×3) + 4D Coordinate c (x, y, z, f)
        ↓
     Encoder q(z|K,c)
        ↓
@@ -129,7 +129,7 @@ Input: PSF K (15×15×3) + 4D Coordinate c (x, y, z, f)
        ↓
     Decoder p(K|z,c)
        ↓
-Output: Reconstructed PSF K̂ (15×15×3)
+Output: Reconstructed PSF K̂ (100×100×3)
 
 Alongside:
     Prior Network p(z|c)
@@ -158,7 +158,7 @@ PE(c) = [sin(2^0·π·c), cos(2^0·π·c),
 Maps PSF and coordinate to latent distribution:
 
 ```
-Input: [Flattened PSF, PE(c)] → ℝ^(675 + 80) = ℝ^755
+Input: [Flattened PSF, PE(c)] → ℝ^(30000 + 80) = ℝ^30080
   ↓
 MLP (4 layers, 512 hidden units, ReLU)
   ↓
@@ -186,11 +186,13 @@ Input: [z, PE(c)] → ℝ^(128 + 80) = ℝ^208
   ↓
 MLP (4 layers, 512 hidden units, ReLU)
   ↓
+Raw output ∈ ℝ^30000
+  ↓
 Physical Constraints:
   - Softplus activation (non-negativity)
   - Per-channel normalization (∑K = 1)
   ↓
-Output: K̂ ∈ ℝ^(3×15×15)
+Output: K̂ ∈ ℝ^(3×100×100)
 ```
 
 ### 4D Stratified Sampling Strategy

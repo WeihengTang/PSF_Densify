@@ -29,14 +29,14 @@ use_jitter: true           # Enable jittered sampling (recommended)
 samples_per_batch: 256     # Number of 4D samples per training batch
 
 # PSF kernel configuration
-kernel_size_small: 15  # Sparse PSF kernel size (15x15)
+kernel_size_small: 100  # PSF kernel size (100x100)
 
 # DeepLens raytracing configuration (inherited from PSF_model)
 deeplens:
   lens_file: "/depot/chan129/users/harshana/svd_v2/lenses/thorlabs/acl12708u.json"
   single_wavelength: false
   spp: 100000  # Samples per pixel for ray tracing
-  kernel_size: 64  # Full resolution PSF (will be downsampled to 15x15)
+  kernel_size: 100  # Full resolution PSF (100x100)
 
   wavelength_set_m: [!!float 450e-9, !!float 550e-9, !!float 650e-9]  # B G R
 
@@ -61,7 +61,7 @@ datasets:
 # CVAE Network Architecture
 network:
   type: CVAE_PSF  # Matches CVAE_PSF_config/CVAE_PSF_arch
-  kernel_size: 15  # PSF kernel size (15x15)
+  kernel_size: 100  # PSF kernel size (100x100)
   in_channels: 3  # RGB channels
   latent_dim: 128  # Latent space dimension
   hidden_dim: 512  # Hidden layer width in MLPs

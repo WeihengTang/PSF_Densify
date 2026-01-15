@@ -32,7 +32,7 @@ use_jitter: true           # Enable jittered sampling (recommended)
 samples_per_batch: 256     # Number of 4D samples per training batch
 
 # PSF kernel configuration
-kernel_size_small: 15  # Sparse PSF kernel size (15x15)
+kernel_size_small: 100  # PSF kernel size (100x100)
 
 # DeepLens configuration (smartphone-scale)
 deeplens:
@@ -41,7 +41,7 @@ deeplens:
   depth_min: !!float 100e-3   # Minimum depth: 0.1m (100mm)
   depth_max: !!float 3000e-3  # Maximum depth: 3.0m (3000mm)
   fov: !!float 0.015          # Field of view in meters
-  kernel_size: 64             # Full resolution PSF (downsampled to 15x15)
+  kernel_size: 100            # Full resolution PSF (100x100)
   spp: 100000
   single_wavelength: false
 
@@ -62,7 +62,7 @@ datasets:
 # Network structure
 network:
   type: CVAE_PSF
-  kernel_size: 15
+  kernel_size: 100
   in_channels: 3
   latent_dim: 128
   hidden_dim: 512

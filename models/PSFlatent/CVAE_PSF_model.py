@@ -78,8 +78,8 @@ class CVAE_PSF_model(PSF_model):
         self.f_min = opt.get('f_min', 0.1)  # Minimum focus distance in meters
         self.f_max = opt.get('f_max', 3.0)  # Maximum focus distance in meters
 
-        # Legacy support - kernel size
-        self.kernel_size_small = opt.get('kernel_size_small', 15)  # Sparse PSF size (15x15)
+        # PSF kernel size
+        self.kernel_size_small = opt.get('kernel_size_small', 100)  # PSF size (100x100)
 
         # Jittered sampling configuration
         self.use_jitter = opt.get('use_jitter', True)  # Enable stratified sampling with jitter
